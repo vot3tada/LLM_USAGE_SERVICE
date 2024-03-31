@@ -1,0 +1,14 @@
+aiogram
+huggingface-hub
+ipython
+llama-index
+llama-index-embeddings-huggingface
+llama-index-extractors-entity
+llama-index-llms-huggingface
+llama-index-llms-llama-cpp
+llama-index-retrievers-bm25
+llama-index-vector-stores-qdrant
+llama-parse
+llama_cpp_python
+llamaindex-py-client
+torch
