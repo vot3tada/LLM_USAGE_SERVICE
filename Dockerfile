@@ -5,12 +5,13 @@ RUN apt-get update && \
 
 RUN mkdir "app"
 
-COPY req.txt /app/req.txt
-COPY telegram_bot.py app/telegram_bot.py
-COPY totalRag.py app/totalReg.py
 WORKDIR /app
+ADD ./req.txt /app/req.txt
+RUN pip install llama-cpp-python --upgrade --force-reinstall --prefer-binary --no-cache-dir --extra-index-url=https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu122
+RUN pip install -r req.txt
 
-RUN pip install --no-cache-dir -r req.txt
+ADD telegram_bot.py app/telegram_bot.py
+ADD totalRag.py app/totalRag.py
+ADD config.ini /app/config.ini
 
-CMD ["python3", "-m", "pip", "install", "llama-cpp-python", "--prefer-binary", "--no-cache-dir", "--extra-index-url=https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu122"]
 CMD ["python3", "telegram_bot.py"]

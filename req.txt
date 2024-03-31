@@ -11,4 +11,3 @@ llama-index-vector-stores-qdrant
 llama-parse
 llama_cpp_python
 llamaindex-py-client
-torch

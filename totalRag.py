@@ -1,4 +1,5 @@
-from typing import Dict
+from abc import ABC
+from typing import Dict, List, Optional
 from llama_index.core import PromptTemplate, SimpleDirectoryReader, StorageContext, VectorStoreIndex, SummaryIndex, \
     Settings
 from llama_index.core.chat_engine.types import ChatMode, AgentChatResponse
@@ -6,11 +7,11 @@ from llama_index.core.extractors import KeywordExtractor, TitleExtractor, Questi
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.response_synthesizers import ResponseMode
-from llama_index.core.schema import TextNode, BaseNode
+from llama_index.core.schema import TextNode, BaseNode, NodeWithScore, QueryBundle
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.extractors.entity import EntityExtractor
 from llama_index.llms.llama_cpp import LlamaCPP
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core.schema import IndexNode
@@ -18,6 +19,20 @@ from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import qdrant_client
 
 from configparser import ConfigParser
+
+
+class DistinctPostprocessor(BaseNodePostprocessor, ABC):
+    def _postprocess_nodes(
+            self,
+            nodes: List[NodeWithScore],
+            query_bundle: Optional[QueryBundle] = None,
+    ) -> List[NodeWithScore]:
+        new_nodes = []
+        for node in nodes:
+            if node.node_id not in [x.node_id for x in new_nodes]:
+                new_nodes.append(node)
+        return new_nodes
+
 
 config = ConfigParser()
 config.read('./config.ini', encoding='utf-8')
@@ -28,7 +43,7 @@ client = qdrant_client.QdrantClient(
 
 embed_model = HuggingFaceEmbedding(config['MODEL']['EMBEDDING'])
 
-memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
+memory = ChatMemoryBuffer.from_defaults()
 
 
 async def _aextract_keywords_from_node(self, node: BaseNode) -> Dict[str, str]:
@@ -61,7 +76,7 @@ verbose = True if config['DEBUG']['ENABLE'] and config['DEBUG']['ENABLE'].lower(
 
 model = LlamaCPP(
     model_path=model_path,
-    max_new_tokens=256,
+    max_new_tokens=512,
     temperature=temperature,
     context_window=3900,
     model_kwargs={
@@ -90,22 +105,16 @@ if config['DATA']['MODE'] == 'CREATE':
     if verbose:
         print(f"{len(documents)} documents found")
 
-    transformations = [SentenceSplitter(chunk_size=256, chunk_overlap=32), ]
+    transformations = [SentenceSplitter(chunk_size=200, chunk_overlap=30)]
 
     if config['METADATA']['ENABLE'] and config['METADATA']['ENABLE'].lower() == 'true':
-        device = 'cuda' if config['METADATA']['DEVICE'] and config['METADATA']['DEVICE'].lower() == 'cuda' else 'cpu'
 
         transformations += [
             TitleExtractor(nodes=3,
                            node_template="""Контекст: {context_str}. Напиши заголовок по данному отрывку. Заголовок: """,
                            combine_template="""{context_str}. На основании заголовков выше. Какой окончательный заголовок отрывка документа ? Заголовок: """
                            ),
-            QuestionsAnsweredExtractor(questions=3),
-            SummaryExtractor(summaries=["prev", "self"]),
-            KeywordExtractor(keywords=10),
-            EntityExtractor(prediction_threshold=0.5,
-                            label_entities=False,
-                            device=device),
+            KeywordExtractor(keywords=10)
         ]
 
     pipeline = IngestionPipeline(transformations=transformations)
@@ -142,7 +151,6 @@ vector_obj = IndexNode(
 bm25_obj = IndexNode(
     index_id="bm25", obj=bm25_retriever, text="BM25 Retriever"
 )
-
 summary_index = SummaryIndex(objects=[vector_obj, bm25_obj])
 summary_retriever = summary_index.as_retriever()
 
@@ -154,9 +162,8 @@ engine = summary_index.as_chat_engine(
         "Ты - чатбот, которому подается контекст из базы знаний. "
         "Ты должен отвечать на вопрос опираясь на полученный контекст и предыдущие вопросы пользователя. Приоритет у последнего вопроса"
     ),
+    node_postprocessors=[DistinctPostprocessor()]
 )
-
-
 
 
 def send_quest(query: str) -> AgentChatResponse:
@@ -180,6 +187,7 @@ def send_quest(query: str) -> AgentChatResponse:
 
 def reset():
     engine.reset()
+
 
 if __name__ == "__main__":
     while True:

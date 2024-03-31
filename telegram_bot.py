@@ -1,8 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-import totalRag as ll
+import totalRag as llm
 import configparser
 
 config = configparser.ConfigParser()
@@ -32,7 +31,7 @@ async def echo(message: types.Message):
 
 
 async def main() -> None:
-    bot = Bot(token, parse_mode=ParseMode.HTML)
+    bot = Bot(token)
     await dp.start_polling(bot, skip_updates=True)
 
 
