@@ -1,7 +1,7 @@
 from typing import Dict
 from llama_index.core import PromptTemplate, SimpleDirectoryReader, StorageContext, VectorStoreIndex, SummaryIndex, \
     Settings
-from llama_index.core.chat_engine.types import ChatMode
+from llama_index.core.chat_engine.types import ChatMode, AgentChatResponse
 from llama_index.core.extractors import KeywordExtractor, TitleExtractor, QuestionsAnsweredExtractor, SummaryExtractor
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.memory import ChatMemoryBuffer
@@ -156,11 +156,10 @@ engine = summary_index.as_chat_engine(
     ),
 )
 
-while True:
-    query = input("Question: ")
 
-    vn = vector_retriever.retrieve(query)
+def send_quest(query: str) -> AgentChatResponse:
     if verbose:
+        vn = vector_retriever.retrieve(query)
         print("VECTOR")
         for node in vn:
             print(f"Score: {node.score:.2f} - {node.text}...\n-----\n")
@@ -174,4 +173,8 @@ while True:
             print(f"Score: {node.score:.2f} - {node.text}...\n-----\n")
 
     res = engine.chat(query)
-    print(res)
+    return res
+
+
+def reset():
+    engine.reset()
