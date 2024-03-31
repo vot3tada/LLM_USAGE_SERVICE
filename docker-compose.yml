@@ -21,6 +21,13 @@ services:
       dockerfile: Dockerfile
       target: ""
     restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
     volumes:
       - ./data:/app/data
       - ./models:/app/models
