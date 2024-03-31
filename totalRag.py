@@ -67,9 +67,9 @@ model = LlamaCPP(
     model_kwargs={
         'n_ctx': n_ctx,
         'n_parts': 1,
-        'n_gpu_layers': 35,
+        'n_gpu_layers': int(config['METADATA']['GPU_LAYERS']) if config['METADATA']['GPU_LAYERS'] else 0,
         'verbose': verbose,
-        'main_gpu': 0,
+        'main_gpu': int(config['METADATA']['MAIN_GPU']) if config['METADATA']['MAIN_GPU'] else 0,
         'top_k': top_k,
         'top_p': top_p
     })
@@ -152,10 +152,11 @@ engine = summary_index.as_chat_engine(
     response_mode=ResponseMode.REFINE,
     system_prompt=(
         "Ты - чатбот, которому подается контекст из базы знаний. "
-        "Ты должен отвечать на вопрос опираясь в первую очередь на предыдущие запросы, "
-        "а во вторую очередь на полученный контекст."
+        "Ты должен отвечать на вопрос опираясь на полученный контекст и предыдущие вопросы пользователя. Приоритет у последнего вопроса"
     ),
 )
+
+
 
 
 def send_quest(query: str) -> AgentChatResponse:
@@ -179,3 +180,9 @@ def send_quest(query: str) -> AgentChatResponse:
 
 def reset():
     engine.reset()
+
+if __name__ == "__main__":
+    while True:
+        query = input("Question: ")
+        response = send_quest(query)
+        print(response)
