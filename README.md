@@ -7,3 +7,7 @@
 ### Если запускать на процессоре
 * Установить библиотеки из req.txt
 *  pip install llama-cpp-python
+
+## Модели
+* LLM - https://huggingface.co/IlyaGusev/saiga_mistral_7b_gguf Подгрузить интересную вам из версий (мы использовали q4)
+* Embed - https://huggingface.co/ai-forever/sbert_large_mt_nlu_ru Написать просто название ai-forever/sbert_large_mt_nlu_ru. Если не подгружается автоматически, скачать все файлы из версий, положить в папку, написать путь до папки в конфиг
